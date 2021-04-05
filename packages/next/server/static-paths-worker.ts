@@ -1,33 +1,32 @@
 import { buildStaticPaths } from '../build/utils'
 import { loadComponents } from '../next-server/server/load-components'
+import '../next-server/server/node-polyfill-fetch'
 
-// store initial require modules so we don't clear them below
-const initialCache = new Set(Object.keys(require.cache))
+type RuntimeConfig = any
+
+let workerWasUsed = false
 
 // we call getStaticPaths in a separate process to ensure
 // side-effects aren't relied on in dev that will break
 // during a production build
 export async function loadStaticPaths(
   distDir: string,
-  buildId: string,
   pathname: string,
-  serverless: boolean
+  serverless: boolean,
+  config: RuntimeConfig,
+  locales?: string[],
+  defaultLocale?: string
 ) {
-  // we need to clear any modules manually here since the
-  // require-cache-hot-loader doesn't affect require cache here
-  // since we're in a separate process
-  Object.keys(require.cache).forEach(mod => {
-    if (!initialCache.has(mod)) {
-      delete require.cache[mod]
-    }
-  })
+  // we only want to use each worker once to prevent any invalid
+  // caches
+  if (workerWasUsed) {
+    process.exit(1)
+  }
 
-  const components = await loadComponents(
-    distDir,
-    buildId,
-    pathname,
-    serverless
-  )
+  // update work memory runtime-config
+  require('./../next-server/lib/runtime-config').setConfig(config)
+
+  const components = await loadComponents(distDir, pathname, serverless)
 
   if (!components.getStaticPaths) {
     // we shouldn't get to this point since the worker should
@@ -37,5 +36,11 @@ export async function loadStaticPaths(
     )
   }
 
-  return buildStaticPaths(pathname, components.getStaticPaths)
+  workerWasUsed = true
+  return buildStaticPaths(
+    pathname,
+    components.getStaticPaths,
+    locales,
+    defaultLocale
+  )
 }

@@ -1,6 +1,5 @@
 import chalk from 'chalk'
 import { findConfig } from '../../../../../lib/find-config'
-import { resolveRequest } from '../../../../../lib/resolve-request'
 import browserslist from 'browserslist'
 
 type CssPluginCollection_Array = (string | [string, boolean | object])[]
@@ -38,7 +37,7 @@ function isIgnoredPlugin(pluginPath: string): boolean {
       plugin
     )} plugin from your PostCSS configuration. ` +
       `This plugin is automatically configured by Next.js.\n` +
-      'Read more: https://err.sh/next.js/postcss-ignored-plugin'
+      'Read more: https://nextjs.org/docs/messages/postcss-ignored-plugin'
   )
   return true
 }
@@ -57,7 +56,7 @@ async function loadPlugin(
     throw new Error(genericErrorText)
   }
 
-  const pluginPath = resolveRequest(pluginName, `${dir}/`)
+  const pluginPath = require.resolve(pluginName, { paths: [dir] })
   if (isIgnoredPlugin(pluginPath)) {
     return false
   } else if (options === true) {
@@ -84,9 +83,9 @@ function getDefaultPlugins(
   } catch {}
 
   return [
-    require.resolve('postcss-flexbugs-fixes'),
+    require.resolve('next/dist/compiled/postcss-flexbugs-fixes'),
     [
-      require.resolve('postcss-preset-env'),
+      require.resolve('next/dist/compiled/postcss-preset-env'),
       {
         browsers: browsers ?? ['defaults'],
         autoprefixer: {
@@ -120,12 +119,12 @@ export async function getPostCssPlugins(
   if (typeof config === 'function') {
     throw new Error(
       `Your custom PostCSS configuration may not export a function. Please export a plain object instead.\n` +
-        'Read more: https://err.sh/next.js/postcss-function'
+        'Read more: https://nextjs.org/docs/messages/postcss-function'
     )
   }
 
   // Warn user about configuration keys which are not respected
-  const invalidKey = Object.keys(config).find(key => key !== 'plugins')
+  const invalidKey = Object.keys(config).find((key) => key !== 'plugins')
   if (invalidKey) {
     console.warn(
       `${chalk.yellow.bold(
@@ -160,7 +159,7 @@ export async function getPostCssPlugins(
   }
 
   const parsed: CssPluginShape[] = []
-  plugins.forEach(plugin => {
+  plugins.forEach((plugin) => {
     if (plugin == null) {
       console.warn(
         `${chalk.yellow.bold('Warning')}: A ${chalk.bold(
@@ -185,14 +184,14 @@ export async function getPostCssPlugins(
             )}: A PostCSS Plugin must be provided as a ${chalk.bold(
               'string'
             )}. Instead, we got: '${pluginName}'.\n` +
-              'Read more: https://err.sh/next.js/postcss-shape'
+              'Read more: https://nextjs.org/docs/messages/postcss-shape'
           )
         } else {
           console.error(
             `${chalk.red.bold(
               'Error'
             )}: A PostCSS Plugin was passed as an array but did not provide its configuration ('${pluginName}').\n` +
-              'Read more: https://err.sh/next.js/postcss-shape'
+              'Read more: https://nextjs.org/docs/messages/postcss-shape'
           )
         }
         throw new Error(genericErrorText)
@@ -203,7 +202,7 @@ export async function getPostCssPlugins(
           'Error'
         )}: A PostCSS Plugin was passed as a function using require(), but it must be provided as a ${chalk.bold(
           'string'
-        )}.\nRead more: https://err.sh/next.js/postcss-shape`
+        )}.\nRead more: https://nextjs.org/docs/messages/postcss-shape`
       )
       throw new Error(genericErrorText)
     } else {
@@ -211,14 +210,14 @@ export async function getPostCssPlugins(
         `${chalk.red.bold(
           'Error'
         )}: An unknown PostCSS plugin was provided (${plugin}).\n` +
-          'Read more: https://err.sh/next.js/postcss-shape'
+          'Read more: https://nextjs.org/docs/messages/postcss-shape'
       )
       throw new Error(genericErrorText)
     }
   })
 
   const resolved = await Promise.all(
-    parsed.map(p => loadPlugin(dir, p[0], p[1]))
+    parsed.map((p) => loadPlugin(dir, p[0], p[1]))
   )
   const filtered: import('postcss').AcceptedPlugin[] = resolved.filter(
     Boolean

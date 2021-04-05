@@ -1,3 +1,5 @@
+import { useRouter } from 'next/router'
+
 export function getStaticProps({ preview, previewData }) {
   return {
     props: {
@@ -8,14 +10,15 @@ export function getStaticProps({ preview, previewData }) {
   }
 }
 
-export default function({ hasProps, preview, previewData }) {
-  if (!hasProps) {
-    return <pre id="props-pre">Has No Props</pre>
-  }
-
+export default function ({ hasProps, preview, previewData }) {
   return (
-    <pre id="props-pre">
-      {JSON.stringify(preview) + ' and ' + JSON.stringify(previewData)}
-    </pre>
+    <>
+      <pre id="props-pre">
+        {hasProps
+          ? JSON.stringify(preview) + ' and ' + JSON.stringify(previewData)
+          : 'Has No Props'}
+      </pre>
+      <p id="router">{JSON.stringify(useRouter())}</p>
+    </>
   )
 }

@@ -1,15 +1,22 @@
 import Link from 'next/link'
 
-export async function getServerSideProps() {
+export async function getServerSideProps({ req }) {
   return {
     props: {
+      url: req.url,
       world: 'world',
       time: new Date().getTime(),
     },
   }
 }
 
-const Page = ({ world, time }) => {
+const Page = ({ world, time, url }) => {
+  if (typeof window === 'undefined') {
+    if (url.startsWith('/_next/data/')) {
+      throw new Error('invalid render for data request')
+    }
+  }
+
   return (
     <>
       <p>hello {world}</p>
@@ -28,6 +35,10 @@ const Page = ({ world, time }) => {
       <br />
       <Link href="/normal">
         <a id="normal">to normal</a>
+      </Link>
+      <br />
+      <Link href="/slow">
+        <a id="slow">to slow</a>
       </Link>
       <br />
       <Link href="/blog/[post]" as="/blog/post-1">

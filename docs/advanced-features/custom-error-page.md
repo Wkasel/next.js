@@ -2,6 +2,8 @@
 description: Override and extend the built-in Error page to handle custom errors.
 ---
 
+# Custom Error Page
+
 ## 404 Page
 
 A 404 page may be accessed very often. Server-rendering an error page for every visit increases the load of the Next.js server. This can result in increased costs and slow experiences.
@@ -19,11 +21,26 @@ export default function Custom404() {
 }
 ```
 
+> **Note**: You can use [`getStaticProps`](/docs/basic-features/data-fetching.md#getstaticprops-static-generation) inside this page if you need to fetch data at build time.
+
 ## 500 Page
 
-By default Next.js provides a 500 error page that matches the default 404 page’s style. This page is not statically optimized as it allows server-side errors to be reported. This is why 404 and 500 (other errors) are separated.
+Server-rendering an error page for every visit adds complexity to responding to errors. To help users get responses to errors as fast as possible, Next.js provides a static 500 page by default without having to add any additional files.
 
-### Customizing The Error Page
+### Customizing The 500 Page
+
+To customize the 500 page you can create a `pages/500.js` file. This file is statically generated at build time.
+
+```jsx
+// pages/500.js
+export default function Custom500() {
+  return <h1>500 - Server-side error occurred</h1>
+}
+```
+
+> **Note**: You can use [`getStaticProps`](/docs/basic-features/data-fetching.md#getstaticprops-static-generation) inside this page if you need to fetch data at build time.
+
+### More Advanced Error Page Customizing
 
 500 errors are handled both client-side and server-side by the `Error` component. If you wish to override it, define the file `pages/_error.js` and add the following code:
 
@@ -54,25 +71,26 @@ If you want to render the built-in error page you can by importing the `Error` c
 
 ```jsx
 import Error from 'next/error'
-import fetch from 'isomorphic-unfetch'
 
-const Page = ({ errorCode, stars }) => {
+export async function getServerSideProps() {
+  const res = await fetch('https://api.github.com/repos/vercel/next.js')
+  const errorCode = res.ok ? false : res.statusCode
+  const json = await res.json()
+
+  return {
+    props: { errorCode, stars: json.stargazers_count },
+  }
+}
+
+export default function Page({ errorCode, stars }) {
   if (errorCode) {
     return <Error statusCode={errorCode} />
   }
 
   return <div>Next stars: {stars}</div>
 }
-
-Page.getInitialProps = async () => {
-  const res = await fetch('https://api.github.com/repos/zeit/next.js')
-  const errorCode = res.statusCode > 200 ? res.statusCode : false
-  const json = await res.json()
-
-  return { errorCode, stars: json.stargazers_count }
-}
-
-export default Page
 ```
 
 The `Error` component also takes `title` as a property if you want to pass in a text message along with a `statusCode`.
+
+If you have a custom `Error` component be sure to import that one instead. `next/error` exports the default component used by Next.js.
